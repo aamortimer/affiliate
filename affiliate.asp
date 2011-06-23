@@ -33,10 +33,15 @@
   	end if
   end function
   
-  dim user_agent, bots, affid
+  dim user_agent, bots, affid, script_name
   user_agent = lcase(request.servervariables("HTTP_USER_AGENT"))
+  if request.servervariables("HTTP_X_REWRITE_URL") <> "" then
+    script_name = request.servervariables("HTTP_X_REWRITE_URL")
+  else
+    script_name = request.servervariables("REQUEST_URI")
+  end if
   bots = lcase("googlebot|slurp|msnbot")
-  affid = request.querystring("affid")
+  affid = replace(script_name, "/affiliate.asp?affid=", "")
 
   set matches = preg_match(user_agent, bots, true)
   if matches.count > 0 then
@@ -44,18 +49,6 @@
     if request.servervariables("HTTPS") = "on" then
       s = "s"
     end if
-  
-    dim script_name
-    if request.servervariables("HTTP_X_REWRITE_URL") <> "" then
-      script_name = request.servervariables("HTTP_X_REWRITE_URL")
-    else
-      script_name = request.servervariables("REQUEST_URI")
-    end if
-    
-    page = preg_replace(script_name, "affid=[^&]*", "", true)
-    page = replace(page, "?", "")
-    page = preg_replace(page, "(\/&+?)", "/?", true)
-
     url = "http" & s & "://" & request.servervariables("HTTP_HOST") & page
 
   	response.clear()
@@ -68,7 +61,7 @@
     if matches.count = 0 then
       affid = "http://" & affid
     end if
-  
+
   	response.clear()
   	response.status = "301 Moved Permanently" 
   	response.addHeader "Location", affid
